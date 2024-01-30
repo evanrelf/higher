@@ -49,7 +49,9 @@ library
   build-depends:
     , template-haskell
     , th-abstraction >= 0.6 && < 0.7
-  exposed-modules: Higher
+  exposed-modules:
+    Higher
+    Higher.TH
 
 test-suite test
   import:
