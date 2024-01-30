@@ -69,5 +69,17 @@ errB = ErrB (Identity "uh oh")
 okB :: ResultB [] e a
 okB = OkB []
 
+newtype Newtype1 = Newtype1 String
+
+$(higher ''Newtype1)
+
+newtype Newtype2 a = Newtype2 a
+
+$(higher ''Newtype2)
+
+newtype Newtype3 a b c d e = Newtype3 c
+
+$(higher ''Newtype3)
+
 main :: IO ()
 main = pure ()

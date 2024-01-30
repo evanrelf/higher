@@ -55,11 +55,12 @@ higherWith options lowerTypeName = do
   let lowerDatatypeVariant :: DatatypeVariant
       lowerDatatypeVariant = datatypeVariant lowerDatatypeInfo
 
-  when (lowerDatatypeVariant /= Datatype) do
+  when (lowerDatatypeVariant `notElem` [Datatype, Newtype]) do
     let message :: String
         message = unwords
           [ "Unsupported datatype variant: " <> show lowerDatatypeVariant <> "."
-          , "Currently only types declared with `data` are supported."
+          , "Currently only types declared with `data` or `newtype` are"
+          , "supported."
           ]
     liftIO $ throwIO $ Error message
 
