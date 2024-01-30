@@ -15,8 +15,6 @@ import Data.Kind (Type)
 import GHC.TypeLits (KnownSymbol)
 import Higher
 
-import qualified Language.Haskell.TH as TH
-
 data Person = Person
   { name :: String
   , age :: Int
@@ -30,10 +28,6 @@ do
           , dataConstructorNameModifier = ("Cool" <>)
           , fieldNameModifier = id
           , typeParameterName = "m"
-          , kindSignature = Just do
-              -- Type -> Type
-              type_ <- TH.reifyType ''Type
-              pure $ TH.ArrowT `TH.AppT` type_ `TH.AppT` type_
           }
   makeHKDWith personOptions ''Person
 

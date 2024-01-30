@@ -34,9 +34,6 @@ data Options = Options
     -- ^ How the higher-kinded variant's fields should be named.
   , typeParameterName :: String
     -- ^ What the higher-kinded variant's type parameter should be named.
-  , kindSignature :: Maybe (Q Kind)
-    -- ^ Whether the higher-kinded variant's additional type parameter should
-    -- have a kind signature.
   }
 
 defaultOptions :: Options
@@ -46,7 +43,6 @@ defaultOptions =
     , dataConstructorNameModifier = (<> "B")
     , fieldNameModifier = (<> "B")
     , typeParameterName = "f"
-    , kindSignature = Nothing
     }
 
 makeHKD :: Name -> Q [Dec]
@@ -77,15 +73,9 @@ makeHKDWith options lowerTypeName = do
 
   higherTypeParameterName :: Name <- newName (typeParameterName options)
 
-  higherTypeParameters :: [TyVarBndrVis] <- do
-    parameter :: TyVarBndrVis <-
-      case kindSignature options of
-        Nothing ->
-          pure $ PlainTV higherTypeParameterName ()
-        Just getKind -> do
-          kind :: Kind <- getKind
-          pure $ KindedTV higherTypeParameterName () kind
-    pure $ parameter : datatypeVars lowerDatatypeInfo
+  let higherTypeParameters :: [TyVarBndrVis]
+      higherTypeParameters =
+        PlainTV higherTypeParameterName () : datatypeVars lowerDatatypeInfo
 
   let higherDataConstructors :: [Q Con]
       higherDataConstructors =
