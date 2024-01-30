@@ -25,9 +25,9 @@ do
       personOptions =
         Options
           { typeConstructorNameModifier = ("Cool" <>)
+          , typeParameterName = "m"
           , dataConstructorNameModifier = ("Cool" <>)
           , fieldNameModifier = id
-          , typeParameterName = "m"
           }
   higherWith personOptions ''Person
 

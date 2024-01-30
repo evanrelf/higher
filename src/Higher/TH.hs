@@ -28,21 +28,21 @@ data Error = Error String
 data Options = Options
   { typeConstructorNameModifier :: String -> String
     -- ^ How the higher-kinded variant's type constructor should be named.
+  , typeParameterName :: String
+    -- ^ What the higher-kinded variant's type parameter should be named.
   , dataConstructorNameModifier :: String -> String
     -- ^ How the higher-kinded variant's data constructors should be named.
   , fieldNameModifier :: String -> String
     -- ^ How the higher-kinded variant's fields should be named.
-  , typeParameterName :: String
-    -- ^ What the higher-kinded variant's type parameter should be named.
   }
 
 defaultOptions :: Options
 defaultOptions =
   Options
     { typeConstructorNameModifier = (<> "B")
+    , typeParameterName = "f"
     , dataConstructorNameModifier = (<> "B")
     , fieldNameModifier = (<> "B")
-    , typeParameterName = "f"
     }
 
 higher :: Name -> Q [Dec]
