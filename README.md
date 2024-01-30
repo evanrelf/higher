@@ -15,7 +15,7 @@ data Person = Person
   , age :: Word
   }
 
-$(makeHKD ''Person)
+$(higher ''Person)
 ```
 
 Into this:
@@ -35,6 +35,6 @@ data PersonB f = PersonB
 ```
 
 You can customize how the type constructor, data constructors, and fields are
-named with `makeHKDWith`.
+named with `higherWith`.
 
 Take a look at the test suite for examples.

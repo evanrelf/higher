@@ -5,8 +5,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Higher.TH
-  ( makeHKD
-  , makeHKDWith
+  ( higher
+  , higherWith
   , Options (..)
   , defaultOptions
   )
@@ -45,11 +45,11 @@ defaultOptions =
     , typeParameterName = "f"
     }
 
-makeHKD :: Name -> Q [Dec]
-makeHKD = makeHKDWith defaultOptions
+higher :: Name -> Q [Dec]
+higher = higherWith defaultOptions
 
-makeHKDWith :: Options -> Name -> Q [Dec]
-makeHKDWith options lowerTypeName = do
+higherWith :: Options -> Name -> Q [Dec]
+higherWith options lowerTypeName = do
   lowerDatatypeInfo :: DatatypeInfo <- reifyDatatype lowerTypeName
 
   let lowerDatatypeVariant :: DatatypeVariant

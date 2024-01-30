@@ -1,6 +1,6 @@
 module Higher
-  ( makeHKD
-  , makeHKDWith
+  ( higher
+  , higherWith
   , Options (..)
   , defaultOptions
   , Higher (..)

@@ -29,7 +29,7 @@ do
           , fieldNameModifier = id
           , typeParameterName = "m"
           }
-  makeHKDWith personOptions ''Person
+  higherWith personOptions ''Person
 
 person :: Person
 person = Person{ name = "John", age = 42 }
@@ -43,7 +43,7 @@ personP = CoolPerson{ name = Named @"name", age = Named @"age" }
 
 data Point a = Point a a
 
-makeHKD ''Point
+higher ''Point
 
 point :: Point Int
 point = Point 0 0
@@ -55,7 +55,7 @@ data Result e a
   = Err e
   | Ok a
 
-makeHKD ''Result
+higher ''Result
 
 err :: Result String a
 err = Err "uh oh"
