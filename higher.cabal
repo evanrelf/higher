@@ -10,13 +10,8 @@ homepage:    https://github.com/evanrelf/higher
 license:     BSD-3-Clause
 copyright:   2024 Evan Relf
 
-library
-  hs-source-dirs: src
-  build-depends:
-    , base
-    , template-haskell
-    , th-abstraction
-  exposed-modules: Higher
+common common
+  build-depends: base
   default-language: GHC2021
   ghc-options:
     -Wall
@@ -31,3 +26,28 @@ library
     -Wmissing-home-modules
     -Wno-unticked-promoted-constructors
     -Wredundant-constraints
+
+common executable
+  ghc-options:
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+
+library
+  import: common
+  hs-source-dirs: src
+  build-depends:
+    , template-haskell
+    , th-abstraction >= 0.6 && < 0.7
+  exposed-modules: Higher
+
+test-suite test
+  import:
+    , common
+    , executable
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: test
+  build-depends:
+    , higher
+    , template-haskell
