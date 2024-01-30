@@ -32,6 +32,15 @@ data PersonB f = PersonB
   { nameB :: f Text
   , ageB :: f Word8
   }
+
+instance Higher Person where
+  type HKD Person = PersonB
+
+  toHKD :: Person -> HKD Person Identity
+  toHKD (Person x0 x1) = PersonB (Identity x0) (Identity x1)
+
+  fromHKD :: HKD Person Identity -> Person
+  fromHKD (PersonB x0 x1) = Person (runIdentity x0) (runIdentity x1)
 ```
 
 You can customize how the type constructor, data constructors, and fields are

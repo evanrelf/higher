@@ -1,6 +1,7 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -16,7 +17,9 @@ import Control.Exception (Exception, throwIO)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Functor ((<&>))
+import Data.List (foldl')
 import Data.Traversable (for)
+import Higher.Class (Higher (..))
 import Language.Haskell.TH hiding (Strict, bang)
 import Language.Haskell.TH.Datatype
 import Language.Haskell.TH.Datatype.TyVarBndr (TyVarBndrVis)
@@ -76,7 +79,7 @@ higherWith options lowerTypeName = do
 
   let higherTypeParameters :: [TyVarBndrVis]
       higherTypeParameters =
-        PlainTV higherTypeParameterName () : datatypeVars lowerDatatypeInfo
+        datatypeVars lowerDatatypeInfo <> [PlainTV higherTypeParameterName ()]
 
   let higherDataConstructors :: [Q Con]
       higherDataConstructors =
@@ -134,4 +137,70 @@ higherWith options lowerTypeName = do
       higherDataConstructors
       []
 
-  pure [higherDataType]
+  let classType :: Type
+      classType = ConT ''Higher
+
+  let familyType :: Type
+      familyType = ConT ''HKD
+
+  let applyTypeParameters :: Type -> Type
+      applyTypeParameters nil = foldl' cons nil (datatypeVars lowerDatatypeInfo)
+        where
+        cons :: Type -> TyVarBndrUnit -> Type
+        cons type_ = \case
+          PlainTV param _flag -> AppT type_ (VarT param)
+          KindedTV param _flag kind -> AppT type_ (SigT (VarT param) kind)
+
+  let lowerType :: Type
+      lowerType = applyTypeParameters (ConT lowerTypeName)
+
+  let higherType :: Type
+      higherType = applyTypeParameters (ConT higherTypeName)
+
+  let higherInstanceType :: Q Type
+      higherInstanceType = pure $ AppT classType lowerType
+
+  let higherInstanceDeclarations :: [Q Dec]
+      higherInstanceDeclarations = do
+        let typeFamilyInstance :: Q Dec
+            typeFamilyInstance =
+              pure $ TySynInstD (TySynEqn Nothing (AppT familyType lowerType) higherType)
+        let toHKDFunction :: Q Dec
+            toHKDFunction = do
+              FunD (mkName "toHKD") <$> do
+                for (datatypeCons lowerDatatypeInfo) \lowerConstructorInfo -> do
+                  let original :: String
+                      original = nameBase (constructorName lowerConstructorInfo)
+                  let fName = mkName ((dataConstructorNameModifier options) original)
+                  xNames <-
+                    for (zip [0 ..] (constructorFields lowerConstructorInfo)) \(i, _) ->
+                      newName ("x" <> show @Int i)
+                  let body = foldl' cons nil xNames
+                        where
+                        nil = ConE fName
+                        cons e n = AppE e (ParensE (AppE (ConE (mkName "Identity")) (VarE n)))
+                  pure $ Clause [ConP (constructorName lowerConstructorInfo) [] (VarP <$> xNames)] (NormalB body) []
+        let fromHKDFunction :: Q Dec
+            fromHKDFunction = do
+              FunD (mkName "fromHKD") <$> do
+                for (datatypeCons lowerDatatypeInfo) \lowerConstructorInfo -> do
+                  let original :: String
+                      original = nameBase (constructorName lowerConstructorInfo)
+                  let fName = mkName ((dataConstructorNameModifier options) original)
+                  xNames <-
+                    for (zip [0 ..] (constructorFields lowerConstructorInfo)) \(i, _) ->
+                      newName ("x" <> show @Int i)
+                  let body = foldl' cons nil xNames
+                        where
+                        nil = ConE (constructorName lowerConstructorInfo)
+                        cons e n = AppE e (ParensE (AppE (VarE (mkName "runIdentity")) (VarE n)))
+                  pure $ Clause [ConP fName [] (VarP <$> xNames)] (NormalB body) []
+        [typeFamilyInstance, toHKDFunction, fromHKDFunction]
+
+  higherInstance :: Dec <-
+    instanceD
+      context
+      higherInstanceType
+      higherInstanceDeclarations
+
+  pure [higherDataType, higherInstance]

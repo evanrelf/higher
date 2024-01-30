@@ -5,6 +5,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
@@ -12,7 +13,7 @@ module Main (main) where
 
 import Data.Functor.Identity (Identity (..))
 import Data.Kind (Type)
-import GHC.TypeLits (KnownSymbol)
+import GHC.TypeLits (KnownSymbol, Symbol)
 import Higher
 
 data Person = Person
@@ -23,33 +24,50 @@ data Person = Person
 do
   let personOptions :: Options
       personOptions =
-        Options
+        defaultOptions
           { typeConstructorNameModifier = ("Cool" <>)
-          , typeParameterName = "m"
           , dataConstructorNameModifier = ("Cool" <>)
           , fieldNameModifier = id
           }
   higherWith personOptions ''Person
 
-person :: Person
-person = Person{ name = "John", age = 42 }
+person1 :: Person
+person1 = Person{ name = "John", age = 42 }
 
 type Named :: Type -> Type
 data Named a where
   Named :: KnownSymbol s => Named a
 
-personP :: CoolPerson Named
-personP = CoolPerson{ name = Named @"name", age = Named @"age" }
+personP1 :: CoolPerson Named
+personP1 = CoolPerson{ name = Named @"name", age = Named @"age" }
+
+personP2 :: HKD Person Identity
+personP2 = CoolPerson{ name = Identity "John", age = Identity 42 }
+
+personP3 :: HKD Person Identity
+personP3 = toHKD person1
+
+person2 :: Person
+person2 = fromHKD personP3
 
 data Point a = Point a a
 
 higher ''Point
 
-point :: Point Int
-point = Point 0 0
+point1 :: Point Int
+point1 = Point 0 0
 
-pointB :: PointB (Either String) Int
-pointB = PointB (Left "x") (Right 0)
+pointB1 :: PointB Int (Either String)
+pointB1 = PointB (Left "x") (Right 0)
+
+pointB2 :: HKD (Point Int) (Either String)
+pointB2 = PointB (Left "x") (Right 0)
+
+pointB3 :: PointB Int Identity
+pointB3 = toHKD point1
+
+point2 :: Point Int
+point2 = fromHKD pointB3
 
 data Result e a
   = Err e
@@ -63,10 +81,10 @@ err = Err "uh oh"
 ok :: Result e [a]
 ok = Ok []
 
-errB :: ResultB Identity String a
+errB :: ResultB String a Identity
 errB = ErrB (Identity "uh oh")
 
-okB :: ResultB [] e a
+okB :: ResultB e a []
 okB = OkB []
 
 newtype Newtype1 = Newtype1 String
@@ -77,9 +95,16 @@ newtype Newtype2 a = Newtype2 a
 
 $(higher ''Newtype2)
 
-newtype Newtype3 a b c d e = Newtype3 c
+newtype Newtype3 (a :: Symbol) (b :: Type -> Type) = Newtype3 Int
 
 $(higher ''Newtype3)
+
+newtype3B :: HKD (Newtype3 "foo" Maybe) Identity
+newtype3B = Newtype3B 42
+
+-- newtype Newtype4 a b c d e = Newtype4 c
+
+-- $(higher ''Newtype4)
 
 main :: IO ()
 main = pure ()
