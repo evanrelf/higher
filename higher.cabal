@@ -51,6 +51,7 @@ library
     , th-abstraction >= 0.6 && < 0.7
   exposed-modules:
     Higher
+    Higher.Class
     Higher.TH
 
 test-suite test
