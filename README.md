@@ -12,7 +12,7 @@ import Higher
 
 data Person = Person
   { name :: Text
-  , age :: Word
+  , age :: Word8
   }
 
 $(higher ''Person)
@@ -25,12 +25,12 @@ import Higher
 
 data Person = Person
   { name :: Text
-  , age :: Word
+  , age :: Word8
   }
 
 data PersonB f = PersonB
   { nameB :: f Text
-  , ageB :: f Word
+  , ageB :: f Word8
   }
 ```
 
