@@ -8,6 +8,7 @@ synopsis:
 description:
   Generate higher-kinded data (HKD) types from regular data types with Template
   Haskell
+category:    Data, Data Structures
 author:      Evan Relf <evan@evanrelf.com>
 maintainer:  Evan Relf <evan@evanrelf.com>
 homepage:    https://github.com/evanrelf/higher
