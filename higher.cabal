@@ -1,0 +1,33 @@
+cabal-version: 2.2
+
+name:        higher
+version:     0.1.0.0
+-- synopsis:
+-- description:
+author:      Evan Relf <evan@evanrelf.com>
+maintainer:  Evan Relf <evan@evanrelf.com>
+homepage:    https://github.com/evanrelf/higher
+license:     BSD-3-Clause
+copyright:   2024 Evan Relf
+
+library
+  hs-source-dirs: src
+  build-depends:
+    , base
+    , template-haskell
+    , th-abstraction
+  exposed-modules: Higher
+  default-language: GHC2021
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Werror=incomplete-patterns
+    -Werror=incomplete-record-updates
+    -Werror=incomplete-uni-patterns
+    -Werror=missing-fields
+    -Werror=missing-methods
+    -Werror=partial-fields
+    -Widentities
+    -Wmissing-home-modules
+    -Wno-unticked-promoted-constructors
+    -Wredundant-constraints
