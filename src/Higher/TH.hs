@@ -37,6 +37,8 @@ data Options = Options
     -- ^ How the higher-kinded variant's data constructors should be named.
   , fieldNameModifier :: String -> String
     -- ^ How the higher-kinded variant's fields should be named.
+  , generateHigherInstance :: Bool
+    -- ^ Whether to generate an instance of the `Higher` type class.
   }
 
 defaultOptions :: Options
@@ -46,54 +48,88 @@ defaultOptions =
     , typeParameterName = "f"
     , dataConstructorNameModifier = (<> "B")
     , fieldNameModifier = (<> "B")
+    , generateHigherInstance = True
     }
 
 higher :: Name -> Q [Dec]
 higher = higherWith defaultOptions
 
 higherWith :: Options -> Name -> Q [Dec]
-higherWith options lowerTypeName = do
-  lowerDatatypeInfo :: DatatypeInfo <- reifyDatatype lowerTypeName
+higherWith options loTypeName = do
+  loDatatypeInfo :: DatatypeInfo <- reifyDatatype loTypeName
 
-  let lowerDatatypeVariant :: DatatypeVariant
-      lowerDatatypeVariant = datatypeVariant lowerDatatypeInfo
+  if generateHigherInstance options then
+    sequence
+      [ higherTypeD options loDatatypeInfo
+      , higherInstanceD options loDatatypeInfo
+      ]
+  else
+    sequence
+      [ higherTypeD options loDatatypeInfo
+      ]
 
-  when (lowerDatatypeVariant `notElem` [Datatype, Newtype]) do
+higherTypeD :: Options -> DatatypeInfo -> Q Dec
+higherTypeD options loDatatypeInfo = do
+  let loDatatypeVariant :: DatatypeVariant
+      loDatatypeVariant = datatypeVariant loDatatypeInfo
+
+  when (loDatatypeVariant `notElem` [Datatype, Newtype]) do
+    let datatypeVariantString :: String
+        datatypeVariantString =
+          case loDatatypeVariant of
+            Datatype -> "data"
+            Newtype -> "newtype"
+            DataInstance -> "data instance"
+            NewtypeInstance -> "newtype instance"
+            TypeData -> "type data"
+
     let message :: String
         message = unwords
-          [ "Unsupported datatype variant: " <> show lowerDatatypeVariant <> "."
+          [ "Unsupported data type: `" <> datatypeVariantString <> "`."
           , "Currently only types declared with `data` or `newtype` are"
           , "supported."
           ]
     liftIO $ throwIO $ Error message
 
   let context :: Q Cxt
-      context = pure (datatypeContext lowerDatatypeInfo)
+      context = pure (datatypeContext loDatatypeInfo)
 
-  higherTypeName :: Name <- do
-    let original :: String
-        original = nameBase lowerTypeName
-    newName ((typeConstructorNameModifier options) original)
+  -- "Foo"
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
 
-  higherTypeParameterName :: Name <- newName (typeParameterName options)
+  -- "FooB"
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
 
-  let higherTypeParameters :: [TyVarBndrVis]
-      higherTypeParameters =
-        datatypeVars lowerDatatypeInfo <> [PlainTV higherTypeParameterName ()]
+  hiTypeParameterName :: Name <- newName (typeParameterName options)
 
-  let higherDataConstructors :: [Q Con]
-      higherDataConstructors =
-        datatypeCons lowerDatatypeInfo <&> \lowerConstructorInfo -> do
-          name :: Name <- do
-            let original :: String
-                original = nameBase (constructorName lowerConstructorInfo)
-            newName ((dataConstructorNameModifier options) original)
+  -- `a`, `b`, f`
+  let hiTypeParameters :: [TyVarBndrVis]
+      hiTypeParameters =
+        datatypeVars loDatatypeInfo <> [PlainTV hiTypeParameterName ()]
+
+  let hiDataConstructors :: [Q Con]
+      hiDataConstructors =
+        datatypeCons loDatatypeInfo <&> \loConstructorInfo -> do
+          -- "Foo"
+          let loConstructorName :: Name
+              loConstructorName = constructorName loConstructorInfo
+
+          -- "FooB"
+          let hiConstructorName :: Name
+              hiConstructorName =
+                mkNameWith
+                  (dataConstructorNameModifier options)
+                  loConstructorName
+
           let bangTypes :: [(Bang, Type)]
               bangTypes = do
-                (lowerType, strictness) :: (Type, FieldStrictness) <-
+                (loFieldType, strictness) :: (Type, FieldStrictness) <-
                   zip
-                    (constructorFields lowerConstructorInfo)
-                    (constructorStrictness lowerConstructorInfo)
+                    (constructorFields loConstructorInfo)
+                    (constructorStrictness loConstructorInfo)
+
                 let bang :: Bang
                     bang =
                       Bang
@@ -105,102 +141,175 @@ higherWith options lowerTypeName = do
                           UnspecifiedStrictness -> NoSourceStrictness
                           Lazy -> SourceLazy
                           Strict -> SourceStrict
-                let type_ :: Type
-                    type_ = AppT (VarT higherTypeParameterName) lowerType
-                pure (bang, type_)
-          case constructorVariant lowerConstructorInfo of
+
+                let hiFieldType :: Type
+                    hiFieldType = AppT (VarT hiTypeParameterName) loFieldType
+
+                pure (bang, hiFieldType)
+
+          case constructorVariant loConstructorInfo of
             NormalConstructor ->
-              pure $ NormalC name bangTypes
+              pure $ NormalC hiConstructorName bangTypes
+
             InfixConstructor -> do
               let left :: (Bang, Type)
                   left = bangTypes !! 0
+
               let right :: (Bang, Type)
                   right = bangTypes !! 1
-              pure $ InfixC left name right
-            RecordConstructor originalFieldNames -> do
-              fieldNames <-
-                for originalFieldNames \originalFieldName -> do
-                  let original :: String
-                      original = nameBase originalFieldName
-                  newName ((fieldNameModifier options) original)
-              let varBangTypes :: [(Name, Bang, Type)]
-                  varBangTypes = do
-                    (fieldName, (bang, type_)) <- zip fieldNames bangTypes
-                    pure (fieldName, bang, type_)
-              pure $ RecC name varBangTypes
 
-  higherDataType :: Dec <-
-    dataDCompat
-      context
-      higherTypeName
-      higherTypeParameters
-      higherDataConstructors
-      []
+              pure $ InfixC left hiConstructorName right
 
-  let classType :: Type
-      classType = ConT ''Higher
+            RecordConstructor loFieldNames -> do
+              let hiFieldNames :: [Name]
+                  hiFieldNames =
+                      fmap
+                        (mkName . fieldNameModifier options . nameBase)
+                        loFieldNames
 
-  let familyType :: Type
-      familyType = ConT ''HKD
+              let fieldBangTypes :: [(Name, Bang, Type)]
+                  fieldBangTypes = do
+                    (hiFieldName, (bang, hiFieldType)) <-
+                      zip hiFieldNames bangTypes
+                    pure (hiFieldName, bang, hiFieldType)
 
+              pure $ RecC hiConstructorName fieldBangTypes
+
+  -- `deriving (...)`
+  let hiDerivedClasses :: [Name]
+      hiDerivedClasses = []
+
+  -- `data FooB a b f = FooB (f a) (f b)`
+  dataDCompat
+    context
+    hiTypeName
+    hiTypeParameters
+    hiDataConstructors
+    hiDerivedClasses
+
+higherInstanceD :: Options -> DatatypeInfo -> Q Dec
+higherInstanceD options loDatatypeInfo = do
+  -- `Foo` -> `Foo a b`
   let applyTypeParameters :: Type -> Type
-      applyTypeParameters nil = foldl' cons nil (datatypeVars lowerDatatypeInfo)
+      applyTypeParameters nil = foldl' cons nil (datatypeVars loDatatypeInfo)
         where
         cons :: Type -> TyVarBndrUnit -> Type
         cons type_ = \case
-          PlainTV param _flag -> AppT type_ (VarT param)
-          KindedTV param _flag kind -> AppT type_ (SigT (VarT param) kind)
+          -- `a`
+          PlainTV name () -> AppT type_ (VarT name)
+          -- `a :: k`
+          KindedTV name () kind -> AppT type_ (SigT (VarT name) kind)
 
-  let lowerType :: Type
-      lowerType = applyTypeParameters (ConT lowerTypeName)
+  -- "Foo"
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
 
-  let higherType :: Type
-      higherType = applyTypeParameters (ConT higherTypeName)
+  -- "FooB"
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
 
+  -- `Foo a b`
+  let loType :: Type
+      loType = applyTypeParameters (ConT loTypeName)
+
+  -- `FooB a b f`
+  let hiType :: Type
+      hiType = applyTypeParameters (ConT hiTypeName)
+
+  -- TODO: Maybe just make this an empty list
+  let context :: Q Cxt
+      context = pure (datatypeContext loDatatypeInfo)
+
+  -- `Higher Foo`
   let higherInstanceType :: Q Type
-      higherInstanceType = pure $ AppT classType lowerType
+      higherInstanceType = pure $ AppT (ConT ''Higher) loType
 
-  let higherInstanceDeclarations :: [Q Dec]
-      higherInstanceDeclarations = do
-        let typeFamilyInstance :: Q Dec
-            typeFamilyInstance =
-              pure $ TySynInstD (TySynEqn Nothing (AppT familyType lowerType) higherType)
-        let toHKDFunction :: Q Dec
-            toHKDFunction = do
-              FunD (mkName "toHKD") <$> do
-                for (datatypeCons lowerDatatypeInfo) \lowerConstructorInfo -> do
-                  let original :: String
-                      original = nameBase (constructorName lowerConstructorInfo)
-                  let fName = mkName ((dataConstructorNameModifier options) original)
-                  xNames <-
-                    for (zip [0 ..] (constructorFields lowerConstructorInfo)) \(i, _) ->
-                      newName ("x" <> show @Int i)
-                  let body = foldl' cons nil xNames
-                        where
-                        nil = ConE fName
-                        cons e n = AppE e (ParensE (AppE (ConE (mkName "Identity")) (VarE n)))
-                  pure $ Clause [ConP (constructorName lowerConstructorInfo) [] (VarP <$> xNames)] (NormalB body) []
-        let fromHKDFunction :: Q Dec
-            fromHKDFunction = do
-              FunD (mkName "fromHKD") <$> do
-                for (datatypeCons lowerDatatypeInfo) \lowerConstructorInfo -> do
-                  let original :: String
-                      original = nameBase (constructorName lowerConstructorInfo)
-                  let fName = mkName ((dataConstructorNameModifier options) original)
-                  xNames <-
-                    for (zip [0 ..] (constructorFields lowerConstructorInfo)) \(i, _) ->
-                      newName ("x" <> show @Int i)
-                  let body = foldl' cons nil xNames
-                        where
-                        nil = ConE (constructorName lowerConstructorInfo)
-                        cons e n = AppE e (ParensE (AppE (VarE (mkName "runIdentity")) (VarE n)))
-                  pure $ Clause [ConP fName [] (VarP <$> xNames)] (NormalB body) []
-        [typeFamilyInstance, toHKDFunction, fromHKDFunction]
+  -- `type HKD (Foo a b) = FooB a b`
+  let hkdInstance :: Q Dec
+      hkdInstance = do
+        let params = Nothing
+        -- `HKD (Foo a b)`
+        let left = AppT (ConT ''HKD) loType
+        -- `FooB a b`
+        let right = hiType
+        pure $ TySynInstD (TySynEqn params left right)
 
-  higherInstance :: Dec <-
-    instanceD
-      context
-      higherInstanceType
-      higherInstanceDeclarations
+  let higherMethod :: HigherMethod -> Q Dec
+      higherMethod method = do
+        -- "toHKD"
+        let name =
+              case method of
+                ToHKD -> mkName "toHKD"
+                FromHKD -> mkName "fromHKD"
 
-  pure [higherDataType, higherInstance]
+        clauses <-
+          for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
+            -- "Foo"
+            let loConstructorName :: Name
+                loConstructorName = constructorName loConstructorInfo
+
+            -- "FooB"
+            let hiConstructorName :: Name
+                hiConstructorName =
+                  mkNameWith
+                    (dataConstructorNameModifier options)
+                    loConstructorName
+
+            let leftConstructorName, rightConstructorName :: Name
+                (leftConstructorName, rightConstructorName) =
+                  case method of
+                    ToHKD -> (loConstructorName, hiConstructorName)
+                    FromHKD -> (hiConstructorName, loConstructorName)
+
+            fieldNames <-
+              for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
+                newName ("x" <> show @Int i)
+
+            -- `toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)`
+            --        ^^^^^^^^^^^
+            let patterns = [ConP leftConstructorName [] (fmap VarP fieldNames)]
+
+            -- `toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)`
+            --                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            let body = NormalB (foldl' cons nil fieldNames)
+                  where
+                  nil :: Exp
+                  nil = ConE rightConstructorName
+
+                  cons :: Exp -> Name -> Exp
+                  cons e n = AppE e (ParensE (AppE f (VarE n)))
+
+                  f :: Exp
+                  f =
+                    case method of
+                      ToHKD -> ConE (mkName "Identity")
+                      FromHKD -> VarE (mkName "runIdentity")
+
+            -- `toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1) where ...`
+            --                                                       ^^^^^^^^^
+            let declarations = []
+
+            pure $ Clause patterns body declarations
+
+        pure $ FunD name clauses
+
+  -- ```
+  -- instance Higher (Foo a b) where
+  --   type HKD (Foo a b) = FooB a b
+  --   toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)
+  --   fromHKD (FooB x0 x1) = Foo (runIdentity x0) (runIdentity x1)
+  -- ```
+  instanceD
+    context
+    higherInstanceType
+    [ hkdInstance
+    , higherMethod ToHKD
+    , higherMethod FromHKD
+    ]
+
+data HigherMethod
+  = ToHKD
+  | FromHKD
+
+mkNameWith :: (String -> String) -> Name -> Name
+mkNameWith modify name = mkName (modify (nameBase name))

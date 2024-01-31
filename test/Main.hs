@@ -102,9 +102,15 @@ $(higher ''Newtype3)
 newtype3B :: HKD (Newtype3 "foo" Maybe) Identity
 newtype3B = Newtype3B 42
 
--- newtype Newtype4 a b c d e = Newtype4 c
+data TypePhantom a (b :: Type) = TypePhantom a
 
--- $(higher ''Newtype4)
+higher ''TypePhantom
+
+-- TOOD: Fix `k` getting included in type parameters for `Higher` instance
+
+-- data PolyKindedPhantom a b = PolyKindedPhantom a
+
+-- higher ''PolyKindedPhantom
 
 main :: IO ()
 main = pure ()
