@@ -12,6 +12,7 @@ category:    Data, Data Structures
 author:      Evan Relf <evan@evanrelf.com>
 maintainer:  Evan Relf <evan@evanrelf.com>
 homepage:    https://github.com/evanrelf/higher
+tested-with: GHC == 9.4
 copyright:   2024 Evan Relf
 license:     BSD-3-Clause
 license-file: LICENSE
