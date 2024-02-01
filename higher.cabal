@@ -11,7 +11,7 @@ category:    Data, Data Structures
 author:      Evan Relf <evan@evanrelf.com>
 maintainer:  Evan Relf <evan@evanrelf.com>
 homepage:    https://github.com/evanrelf/higher
-tested-with: GHC == 9.4
+tested-with: GHC == 9.2, GHC == 9.4, GHC == 9.8
 copyright:   2024 Evan Relf
 license:     BSD-3-Clause
 license-file: LICENSE
@@ -47,9 +47,9 @@ library
   import: common
   hs-source-dirs: src
   build-depends:
-    , barbies
+    , barbies >= 2.0.1 && < 2.2
     , containers
-    , template-haskell
+    , template-haskell >= 2.18 && < 2.22
     , th-abstraction >= 0.6 && < 0.7
   exposed-modules:
     Higher

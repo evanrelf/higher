@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -32,8 +33,7 @@ import Data.Set (Set)
 import Data.Traversable (for)
 import Higher.Class (Higher (..))
 import Language.Haskell.TH hiding (Strict, bang)
-import Language.Haskell.TH.Datatype
-import Language.Haskell.TH.Datatype.TyVarBndr (TyVarBndrVis)
+import Language.Haskell.TH.Datatype as THA
 
 import qualified Data.Set as Set
 
@@ -91,7 +91,7 @@ hiTypeD options loDatatypeInfo = do
             Newtype -> "newtype"
             DataInstance -> "data instance"
             NewtypeInstance -> "newtype instance"
-            TypeData -> "type data"
+            THA.TypeData -> "type data"
 
     let message :: String
         message = unwords
@@ -112,7 +112,7 @@ hiTypeD options loDatatypeInfo = do
 
   hiTypeParameterName :: Name <- newName (typeParameterName options)
 
-  let hiTypeParameters :: [TyVarBndrVis]
+  let hiTypeParameters :: [TyVarBndrUnit]
       hiTypeParameters =
         datatypeVars loDatatypeInfo <> [PlainTV hiTypeParameterName ()]
 
@@ -197,7 +197,11 @@ hiTypeD options loDatatypeInfo = do
   dataDCompat
     context
     hiTypeName
+#if MIN_VERSION_template_haskell(2,21,0)
+    (fmap (BndrReq <$) hiTypeParameters)
+#else
     hiTypeParameters
+#endif
     hiDataConstructors
     hiDerivedClasses
 
