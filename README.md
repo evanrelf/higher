@@ -57,3 +57,6 @@ You can customize how the type constructor, data constructors, and fields are
 named with `higherWith`.
 
 Take a look at the test suite for examples.
+
+Check out [higgledy](https://github.com/i-am-tom/higgledy) if you prefer using
+`Generic` over Template Haskell.
