@@ -41,10 +41,10 @@ data Named a where
 personP1 :: CoolPerson Named
 personP1 = CoolPerson{ name = Named @"name", age = Named @"age" }
 
-personP2 :: HKD Person Identity
+personP2 :: CoolPerson Identity
 personP2 = CoolPerson{ name = Identity "John", age = Identity 42 }
 
-personP3 :: HKD Person Identity
+personP3 :: CoolPerson Identity
 personP3 = toHKD person1
 
 person2 :: Person
@@ -60,7 +60,7 @@ point1 = Point 0 0
 pointB1 :: PointB Int (Either String)
 pointB1 = PointB (Left "x") (Right 0)
 
-pointB2 :: HKD (Point Int) (Either String)
+pointB2 :: PointB Int (Either String)
 pointB2 = PointB (Left "x") (Right 0)
 
 pointB3 :: PointB Int Identity
@@ -99,7 +99,7 @@ newtype Newtype3 (a :: Symbol) (b :: Type -> Type) = Newtype3 Int
 
 $(higher ''Newtype3)
 
-newtype3B :: HKD (Newtype3 "foo" Maybe) Identity
+newtype3B :: Newtype3B "foo" Maybe Identity
 newtype3B = Newtype3B 42
 
 data TypePhantom a (b :: Type) = TypePhantom a

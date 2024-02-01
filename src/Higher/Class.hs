@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module Higher.Class
   ( Higher (..)
@@ -6,9 +6,7 @@ module Higher.Class
 where
 
 import Data.Functor.Identity (Identity (..))
-import Data.Kind (Type)
 
-class Higher a where
-  type HKD a :: (Type -> Type) -> Type
-  toHKD :: a -> HKD a Identity
-  fromHKD :: HKD a Identity -> a
+class Higher lo hi | lo -> hi, hi -> lo where
+  toHKD :: lo -> hi Identity
+  fromHKD :: hi Identity -> lo

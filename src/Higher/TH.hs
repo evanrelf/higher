@@ -225,7 +225,7 @@ higherInstanceD options loDatatypeInfo = do
   let loType :: Type
       loType = applyTypeParameters (ConT loTypeName)
 
-  -- `FooB a b f`
+  -- `FooB a b` (omitting `f`)
   let hiType :: Type
       hiType = applyTypeParameters (ConT hiTypeName)
 
@@ -235,17 +235,7 @@ higherInstanceD options loDatatypeInfo = do
 
   -- `Higher Foo`
   let higherInstanceType :: Q Type
-      higherInstanceType = pure $ AppT (ConT ''Higher) loType
-
-  -- `type HKD (Foo a b) = FooB a b`
-  let hkdInstance :: Q Dec
-      hkdInstance = do
-        let params = Nothing
-        -- `HKD (Foo a b)`
-        let left = AppT (ConT ''HKD) loType
-        -- `FooB a b`
-        let right = hiType
-        pure $ TySynInstD (TySynEqn params left right)
+      higherInstanceType = pure $ ConT ''Higher `AppT` loType `AppT` hiType
 
   let higherMethod :: HigherMethod -> Q Dec
       higherMethod method = do
@@ -307,16 +297,14 @@ higherInstanceD options loDatatypeInfo = do
         pure $ FunD name clauses
 
   -- ```
-  -- instance Higher (Foo a b) where
-  --   type HKD (Foo a b) = FooB a b
+  -- instance Higher (Foo a b) (FooB a b) where
   --   toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)
   --   fromHKD (FooB x0 x1) = Foo (runIdentity x0) (runIdentity x1)
   -- ```
   instanceD
     context
     higherInstanceType
-    [ hkdInstance
-    , higherMethod ToHKD
+    [ higherMethod ToHKD
     , higherMethod FromHKD
     ]
 
