@@ -314,23 +314,110 @@ data HigherMethod
 
 functorBInstanceD :: Options -> DatatypeInfo -> Q Dec
 functorBInstanceD options loDatatypeInfo = do
-  undefined
+  let context :: Q Cxt
+      context = do
+        undefined
+
+  let functorBInstanceType :: Q Type
+      functorBInstanceType = do
+        undefined
+
+  let bmapMethod :: Q Dec
+      bmapMethod = do
+        undefined
+
+  instanceD
+    context
+    functorBInstanceType
+    [bmapMethod]
 
 traversableBInstanceD :: Options -> DatatypeInfo -> Q Dec
 traversableBInstanceD options loDatatypeInfo = do
-  undefined
+  let context :: Q Cxt
+      context = do
+        undefined
+
+  let traversableBInstanceType :: Q Type
+      traversableBInstanceType = do
+        undefined
+
+  let btraverseMethod :: Q Dec
+      btraverseMethod = do
+        undefined
+
+  instanceD
+    context
+    traversableBInstanceType
+    [btraverseMethod]
 
 distributiveBInstanceD :: Options -> DatatypeInfo -> Q Dec
 distributiveBInstanceD options loDatatypeInfo = do
-  undefined
+  let context :: Q Cxt
+      context = do
+        undefined
+
+  let distributiveBInstanceType :: Q Type
+      distributiveBInstanceType = do
+        undefined
+
+  let bdistributeMethod :: Q Dec
+      bdistributeMethod = do
+        undefined
+
+  instanceD
+    context
+    distributiveBInstanceType
+    [bdistributeMethod]
 
 applicativeBInstanceD :: Options -> DatatypeInfo -> Q Dec
 applicativeBInstanceD options loDatatypeInfo = do
-  undefined
+  let context :: Q Cxt
+      context = do
+        undefined
+
+  let applicativeBInstanceType :: Q Type
+      applicativeBInstanceType = do
+        undefined
+
+  let bpureMethod :: Q Dec
+      bpureMethod = do
+        undefined
+
+  let bprodMethod :: Q Dec
+      bprodMethod = do
+        undefined
+
+  instanceD
+    context
+    applicativeBInstanceType
+    [ bpureMethod
+    , bprodMethod
+    ]
 
 constraintsBInstanceD :: Options -> DatatypeInfo -> Q Dec
 constraintsBInstanceD options loDatatypeInfo = do
-  undefined
+  let context :: Q Cxt
+      context = do
+        undefined
+
+  let constraintsBInstanceType :: Q Type
+      constraintsBInstanceType = do
+        undefined
+
+  let allBTypeFamilyInstance :: Q Dec
+      allBTypeFamilyInstance = do
+        undefined
+
+  let baddDictsMethod :: Q Dec
+      baddDictsMethod = do
+        undefined
+
+  instanceD
+    context
+    constraintsBInstanceType
+    [ allBTypeFamilyInstance
+    , baddDictsMethod
+    ]
 
 mkNameWith :: (String -> String) -> Name -> Name
 mkNameWith modify name = mkName (modify (nameBase name))
