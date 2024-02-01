@@ -53,6 +53,10 @@ instance Higher Person PersonB where
 instance FunctorB PersonB where
   bmap :: (forall a. f a -> g a) -> PersonB f -> PersonB g
   bmap f (PersonB x0 x1) = PersonB (f x0) (f x1)
+
+instance TraversableB PersonB where
+  btraverse :: Applicative e => (forall a. f a -> e (g a)) -> PersonB f -> e (PersonB g)
+  btraverse f (PersonB x0 x1) = pure PersonB <*> f x0 <*> f x1
 ```
 
 You can customize how the type constructor, data constructors, and fields are

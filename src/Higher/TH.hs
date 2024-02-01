@@ -67,7 +67,7 @@ higherWith options loTypeName = do
     [ hiTypeD options loDatatypeInfo
     , higherInstanceD options loDatatypeInfo
     , functorBInstanceD options loDatatypeInfo
-    -- , traversableBInstanceD options loDatatypeInfo
+    , traversableBInstanceD options loDatatypeInfo
     -- , distributiveBInstanceD options loDatatypeInfo
     -- , applicativeBInstanceD options loDatatypeInfo
     -- , constraintsBInstanceD options loDatatypeInfo
@@ -355,7 +355,45 @@ traversableBInstanceD options loDatatypeInfo = do
 
   let btraverseMethod :: Q Dec
       btraverseMethod = do
-        undefined
+        clauses <-
+          for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
+            let loConstructorName :: Name
+                loConstructorName = constructorName loConstructorInfo
+
+            let hiConstructorName :: Name
+                hiConstructorName =
+                  mkNameWith
+                    (dataConstructorNameModifier options)
+                    loConstructorName
+
+            fName <- newName "f"
+
+            fieldNames <-
+              for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
+                newName ("x" <> show @Int i)
+
+            let patterns =
+                  [ VarP fName
+                  , ConP hiConstructorName [] (fmap VarP fieldNames)
+                  ]
+
+            let body = NormalB (foldl' cons nil fieldNames)
+                  where
+                  nil :: Exp
+                  nil = AppE (VarE 'pure) (ConE hiConstructorName)
+
+                  cons :: Exp -> Name -> Exp
+                  cons e n =
+                    UInfixE
+                      e
+                      (VarE '(<*>))
+                      (ParensE (AppE (VarE fName) (VarE n)))
+
+            let declarations = []
+
+            pure $ Clause patterns body declarations
+
+        pure $ FunD 'btraverse clauses
 
   instanceD
     context

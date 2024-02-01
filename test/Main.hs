@@ -12,6 +12,7 @@
 module Main (main) where
 
 import Data.Functor.Barbie
+import Data.Functor.Const (Const (..))
 import Data.Functor.Identity (Identity (..))
 import Data.Kind (Type)
 import GHC.TypeLits (KnownSymbol, Symbol)
@@ -118,6 +119,40 @@ data MyEqOrOrd a
   | forall b. Ord b => MyOrd b
 
 higher ''MyEqOrOrd
+
+data Founders = Founders
+  { immad :: String
+  , jason :: String
+  , max :: String
+  }
+
+higher ''Founders
+
+founders :: Founders
+founders =
+  Founders
+    { immad = "Immad"
+    , jason = "Jason"
+    , max = "Max"
+    }
+
+founderFieldIndices :: FoundersB (Const Int)
+founderFieldIndices =
+  FoundersB
+    { immadB = Const 0
+    , jasonB = Const 1
+    , maxB = Const 2
+    }
+
+printFounderFieldIndices :: IO ()
+printFounderFieldIndices =
+  btraverse_ (\(Const i) -> print i) founderFieldIndices
+
+-- TODO: Need `ConstraintsB` implemented before I can assert that `a` is always
+-- `String` in this one.
+-- founderActions :: FoundersB (Const (IO ()))
+-- founderActions =
+--   bmap (\(Identity name) -> Const (putStrLn ("Hello " <> name <> "!"))) (toHKD founders)
 
 main :: IO ()
 main = pure ()
