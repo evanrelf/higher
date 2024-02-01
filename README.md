@@ -49,6 +49,10 @@ instance Higher Person PersonB where
 
   fromHKD :: PersonB Identity -> Person
   fromHKD (PersonB x0 x1) = Person (runIdentity x0) (runIdentity x1)
+
+instance FunctorB PersonB where
+  bmap :: (forall a. f a -> g a) -> PersonB f -> PersonB g
+  bmap f (PersonB x0 x1) = PersonB (f x0) (f x1)
 ```
 
 You can customize how the type constructor, data constructors, and fields are

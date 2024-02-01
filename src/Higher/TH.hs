@@ -65,7 +65,7 @@ higherWith options loTypeName = do
   sequence
     [ hiTypeD options loDatatypeInfo
     , higherInstanceD options loDatatypeInfo
-    -- , functorBInstanceD options loDatatypeInfo
+    , functorBInstanceD options loDatatypeInfo
     -- , traversableBInstanceD options loDatatypeInfo
     -- , distributiveBInstanceD options loDatatypeInfo
     -- , applicativeBInstanceD options loDatatypeInfo
@@ -293,7 +293,42 @@ functorBInstanceD options loDatatypeInfo = do
 
   let bmapMethod :: Q Dec
       bmapMethod = do
-        undefined
+        clauses <-
+          for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
+            let loConstructorName :: Name
+                loConstructorName = constructorName loConstructorInfo
+
+            let hiConstructorName :: Name
+                hiConstructorName =
+                  mkNameWith
+                    (dataConstructorNameModifier options)
+                    loConstructorName
+
+            fName <- newName "f"
+
+            fieldNames <-
+              for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
+                newName ("x" <> show @Int i)
+
+            let patterns =
+                  [ VarP fName
+                  , ConP hiConstructorName [] (fmap VarP fieldNames)
+                  ]
+
+            let body = NormalB (foldl' cons nil fieldNames)
+                  where
+                  nil :: Exp
+                  nil = ConE hiConstructorName
+
+                  cons :: Exp -> Name -> Exp
+                  cons e n =
+                    AppE e (ParensE (AppE (VarE fName) (VarE n)))
+
+            let declarations = []
+
+            pure $ Clause patterns body declarations
+
+        pure $ FunD (mkName "bmap") clauses
 
   instanceD
     context

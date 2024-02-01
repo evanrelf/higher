@@ -11,6 +11,7 @@
 
 module Main (main) where
 
+import Data.Functor.Barbie
 import Data.Functor.Identity (Identity (..))
 import Data.Kind (Type)
 import GHC.TypeLits (KnownSymbol, Symbol)
@@ -60,8 +61,8 @@ point1 = Point 0 0
 pointB1 :: PointB Int (Either String)
 pointB1 = PointB (Left "x") (Right 0)
 
-pointB2 :: PointB Int (Either String)
-pointB2 = PointB (Left "x") (Right 0)
+pointB2 :: PointB Int Maybe
+pointB2 = bmap (\(Identity x) -> Just x) (PointB (Identity 1) (Identity 2))
 
 pointB3 :: PointB Int Identity
 pointB3 = toHKD point1
