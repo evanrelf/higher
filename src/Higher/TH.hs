@@ -176,9 +176,11 @@ hiTypeD options loDatatypeInfo = do
 
                     RecC hiConstructorName fieldBangTypes
 
-          let vars = fmap (SpecifiedSpec <$) (constructorVars loConstructorInfo)
+          let vars :: [TyVarBndr Specificity]
+              vars = fmap (SpecifiedSpec <$) (constructorVars loConstructorInfo)
 
-          let context = constructorContext loConstructorInfo
+          let context :: Cxt
+              context = constructorContext loConstructorInfo
 
           if not (null vars) || not (null context)
             then pure $ ForallC vars context hiConstructor
@@ -216,12 +218,13 @@ higherInstanceD options loDatatypeInfo = do
 
   let higherMethod :: HigherMethod -> Q Dec
       higherMethod method = do
-        let name =
+        let name :: Name
+            name =
               case method of
                 ToHKD -> 'toHKD
                 FromHKD -> 'fromHKD
 
-        clauses <-
+        clauses :: [Clause] <-
           for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
             let loConstructorName :: Name
                 loConstructorName = constructorName loConstructorInfo
@@ -238,13 +241,15 @@ higherInstanceD options loDatatypeInfo = do
                     ToHKD -> (loConstructorName, hiConstructorName)
                     FromHKD -> (hiConstructorName, loConstructorName)
 
-            fieldNames <-
+            fieldNames :: [Name] <-
               for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
                 newName ("x" <> show @Int i)
 
-            let patterns = [ConP leftConstructorName [] (fmap VarP fieldNames)]
+            let patterns :: [Pat]
+                patterns = [ConP leftConstructorName [] (fmap VarP fieldNames)]
 
-            let body = NormalB (foldl' cons nil fieldNames)
+            let body :: Body
+                body = NormalB (foldl' cons nil fieldNames)
                   where
                   nil :: Exp
                   nil = ConE rightConstructorName
@@ -258,7 +263,8 @@ higherInstanceD options loDatatypeInfo = do
                       ToHKD -> ConE 'Identity
                       FromHKD -> VarE 'runIdentity
 
-            let declarations = []
+            let declarations :: [Dec]
+                declarations = []
 
             pure $ Clause patterns body declarations
 
@@ -294,7 +300,7 @@ functorBInstanceD options loDatatypeInfo = do
 
   let bmapMethod :: Q Dec
       bmapMethod = do
-        clauses <-
+        clauses :: [Clause] <-
           for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
             let loConstructorName :: Name
                 loConstructorName = constructorName loConstructorInfo
@@ -305,18 +311,20 @@ functorBInstanceD options loDatatypeInfo = do
                     (dataConstructorNameModifier options)
                     loConstructorName
 
-            fName <- newName "f"
+            fName :: Name <- newName "f"
 
-            fieldNames <-
+            fieldNames :: [Name] <-
               for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
                 newName ("x" <> show @Int i)
 
-            let patterns =
+            let patterns :: [Pat]
+                patterns =
                   [ VarP fName
                   , ConP hiConstructorName [] (fmap VarP fieldNames)
                   ]
 
-            let body = NormalB (foldl' cons nil fieldNames)
+            let body :: Body
+                body = NormalB (foldl' cons nil fieldNames)
                   where
                   nil :: Exp
                   nil = ConE hiConstructorName
@@ -325,7 +333,8 @@ functorBInstanceD options loDatatypeInfo = do
                   cons e n =
                     AppE e (ParensE (AppE (VarE fName) (VarE n)))
 
-            let declarations = []
+            let declarations :: [Dec]
+                declarations = []
 
             pure $ Clause patterns body declarations
 
@@ -355,7 +364,7 @@ traversableBInstanceD options loDatatypeInfo = do
 
   let btraverseMethod :: Q Dec
       btraverseMethod = do
-        clauses <-
+        clauses :: [Clause] <-
           for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
             let loConstructorName :: Name
                 loConstructorName = constructorName loConstructorInfo
@@ -366,18 +375,20 @@ traversableBInstanceD options loDatatypeInfo = do
                     (dataConstructorNameModifier options)
                     loConstructorName
 
-            fName <- newName "f"
+            fName :: Name <- newName "f"
 
-            fieldNames <-
+            fieldNames :: [Name] <-
               for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
                 newName ("x" <> show @Int i)
 
-            let patterns =
+            let patterns :: [Pat]
+                patterns =
                   [ VarP fName
                   , ConP hiConstructorName [] (fmap VarP fieldNames)
                   ]
 
-            let body = NormalB (foldl' cons nil fieldNames)
+            let body :: Body
+                body = NormalB (foldl' cons nil fieldNames)
                   where
                   nil :: Exp
                   nil = AppE (VarE 'pure) (ConE hiConstructorName)
@@ -389,7 +400,8 @@ traversableBInstanceD options loDatatypeInfo = do
                       (VarE '(<*>))
                       (ParensE (AppE (VarE fName) (VarE n)))
 
-            let declarations = []
+            let declarations :: [Dec]
+                declarations = []
 
             pure $ Clause patterns body declarations
 
