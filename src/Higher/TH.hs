@@ -5,6 +5,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+
 module Higher.TH
   ( higher
   , higherWith
@@ -91,6 +93,7 @@ higherTypeD options loDatatypeInfo = do
           ]
     liftIO $ throwIO $ Error message
 
+  -- `(Eq a, Ord a)`
   let context :: Q Cxt
       context = pure (datatypeContext loDatatypeInfo)
 
@@ -147,33 +150,42 @@ higherTypeD options loDatatypeInfo = do
 
                 pure (bang, hiFieldType)
 
-          case constructorVariant loConstructorInfo of
-            NormalConstructor ->
-              pure $ NormalC hiConstructorName bangTypes
+          let hiConstructor =
+                case constructorVariant loConstructorInfo of
+                  NormalConstructor ->
+                    NormalC hiConstructorName bangTypes
 
-            InfixConstructor -> do
-              let left :: (Bang, Type)
-                  left = bangTypes !! 0
+                  InfixConstructor -> do
+                    let left :: (Bang, Type)
+                        left = bangTypes !! 0
 
-              let right :: (Bang, Type)
-                  right = bangTypes !! 1
+                    let right :: (Bang, Type)
+                        right = bangTypes !! 1
 
-              pure $ InfixC left hiConstructorName right
+                    InfixC left hiConstructorName right
 
-            RecordConstructor loFieldNames -> do
-              let hiFieldNames :: [Name]
-                  hiFieldNames =
-                      fmap
-                        (mkName . fieldNameModifier options . nameBase)
-                        loFieldNames
+                  RecordConstructor loFieldNames -> do
+                    let hiFieldNames :: [Name]
+                        hiFieldNames =
+                            fmap
+                              (mkName . fieldNameModifier options . nameBase)
+                              loFieldNames
 
-              let fieldBangTypes :: [(Name, Bang, Type)]
-                  fieldBangTypes = do
-                    (hiFieldName, (bang, hiFieldType)) <-
-                      zip hiFieldNames bangTypes
-                    pure (hiFieldName, bang, hiFieldType)
+                    let fieldBangTypes :: [(Name, Bang, Type)]
+                        fieldBangTypes = do
+                          (hiFieldName, (bang, hiFieldType)) <-
+                            zip hiFieldNames bangTypes
+                          pure (hiFieldName, bang, hiFieldType)
 
-              pure $ RecC hiConstructorName fieldBangTypes
+                    RecC hiConstructorName fieldBangTypes
+
+          let vars = fmap (SpecifiedSpec <$) (constructorVars loConstructorInfo)
+
+          let context = constructorContext loConstructorInfo
+
+          if not (null vars) || not (null context)
+            then pure $ ForallC vars context hiConstructor
+            else pure hiConstructor
 
   -- `deriving (...)`
   let hiDerivedClasses :: [Name]
@@ -216,7 +228,7 @@ higherInstanceD options loDatatypeInfo = do
   let hiType :: Type
       hiType = applyTypeParameters (ConT hiTypeName)
 
-  -- TODO: Maybe just make this an empty list
+  -- `(Eq a, Ord a)`
   let context :: Q Cxt
       context = pure (datatypeContext loDatatypeInfo)
 

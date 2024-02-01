@@ -112,5 +112,11 @@ higher ''TypePhantom
 
 -- higher ''PolyKindedPhantom
 
+data MyEqOrOrd a
+  = Eq a => MyEq a
+  | forall b. Ord b => MyOrd b
+
+higher ''MyEqOrOrd
+
 main :: IO ()
 main = pure ()
