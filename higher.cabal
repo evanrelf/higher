@@ -2,12 +2,11 @@ cabal-version: 2.2
 
 name:        higher
 version:     0.1.0.0
-synopsis:
-  Generate higher-kinded data (HKD) types from regular data types with Template
-  Haskell
+synopsis:    Higher-kinded data (HKD) types with less pain
 description:
-  Generate higher-kinded data (HKD) types from regular data types with Template
-  Haskell
+  <https://reasonablypolymorphic.com/blog/higher-kinded-data/ Higher-kinded data>
+  (HKD) types with less pain
+
 category:    Data, Data Structures
 author:      Evan Relf <evan@evanrelf.com>
 maintainer:  Evan Relf <evan@evanrelf.com>
