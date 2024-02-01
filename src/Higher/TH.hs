@@ -95,21 +95,17 @@ hiTypeD options loDatatypeInfo = do
           ]
     liftIO $ throwIO $ Error message
 
-  -- `(Eq a, Ord a)`
   let context :: Q Cxt
       context = pure (datatypeContext loDatatypeInfo)
 
-  -- "Foo"
   let loTypeName :: Name
       loTypeName = datatypeName loDatatypeInfo
 
-  -- "FooB"
   let hiTypeName :: Name
       hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
 
   hiTypeParameterName :: Name <- newName (typeParameterName options)
 
-  -- `a`, `b`, f`
   let hiTypeParameters :: [TyVarBndrVis]
       hiTypeParameters =
         datatypeVars loDatatypeInfo <> [PlainTV hiTypeParameterName ()]
@@ -117,11 +113,9 @@ hiTypeD options loDatatypeInfo = do
   let hiDataConstructors :: [Q Con]
       hiDataConstructors =
         datatypeCons loDatatypeInfo <&> \loConstructorInfo -> do
-          -- "Foo"
           let loConstructorName :: Name
               loConstructorName = constructorName loConstructorInfo
 
-          -- "FooB"
           let hiConstructorName :: Name
               hiConstructorName =
                 mkNameWith
@@ -189,11 +183,9 @@ hiTypeD options loDatatypeInfo = do
             then pure $ ForallC vars context hiConstructor
             else pure hiConstructor
 
-  -- `deriving (...)`
   let hiDerivedClasses :: [Name]
       hiDerivedClasses = []
 
-  -- `data FooB a b f = FooB (f a) (f b)`
   dataDCompat
     context
     hiTypeName
@@ -203,33 +195,26 @@ hiTypeD options loDatatypeInfo = do
 
 higherInstanceD :: Options -> DatatypeInfo -> Q Dec
 higherInstanceD options loDatatypeInfo = do
-  -- "Foo"
   let loTypeName :: Name
       loTypeName = datatypeName loDatatypeInfo
 
-  -- "FooB"
   let hiTypeName :: Name
       hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
 
-  -- `Foo a b`
   let loType :: Type
       loType = applyTypeParameters loDatatypeInfo (ConT loTypeName)
 
-  -- `FooB a b` (omitting `f`)
   let hiType :: Type
       hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
 
-  -- `(Eq a, Ord a)`
   let context :: Q Cxt
       context = pure (datatypeContext loDatatypeInfo)
 
-  -- `Higher Foo`
   let higherInstanceType :: Q Type
       higherInstanceType = pure $ ConT ''Higher `AppT` loType `AppT` hiType
 
   let higherMethod :: HigherMethod -> Q Dec
       higherMethod method = do
-        -- "toHKD"
         let name =
               case method of
                 ToHKD -> mkName "toHKD"
@@ -237,11 +222,9 @@ higherInstanceD options loDatatypeInfo = do
 
         clauses <-
           for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
-            -- "Foo"
             let loConstructorName :: Name
                 loConstructorName = constructorName loConstructorInfo
 
-            -- "FooB"
             let hiConstructorName :: Name
                 hiConstructorName =
                   mkNameWith
@@ -258,12 +241,8 @@ higherInstanceD options loDatatypeInfo = do
               for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
                 newName ("x" <> show @Int i)
 
-            -- `toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)`
-            --        ^^^^^^^^^^^
             let patterns = [ConP leftConstructorName [] (fmap VarP fieldNames)]
 
-            -- `toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)`
-            --                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             let body = NormalB (foldl' cons nil fieldNames)
                   where
                   nil :: Exp
@@ -278,19 +257,12 @@ higherInstanceD options loDatatypeInfo = do
                       ToHKD -> ConE (mkName "Identity")
                       FromHKD -> VarE (mkName "runIdentity")
 
-            -- `toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1) where ...`
-            --                                                       ^^^^^^^^^
             let declarations = []
 
             pure $ Clause patterns body declarations
 
         pure $ FunD name clauses
 
-  -- ```
-  -- instance Higher (Foo a b) (FooB a b) where
-  --   toHKD (Foo x0 x1) = FooB (Identity x0) (Identity x1)
-  --   fromHKD (FooB x0 x1) = Foo (runIdentity x0) (runIdentity x1)
-  -- ```
   instanceD
     context
     higherInstanceType
@@ -450,9 +422,7 @@ applyTypeParameters loDatatypeInfo nil =
   where
   cons :: Type -> TyVarBndrUnit -> Type
   cons type_ = \case
-    -- `a`
     PlainTV name () -> AppT type_ (VarT name)
-    -- `a :: k`
     KindedTV name () kind -> AppT type_ (SigT (VarT name) kind)
 
 mkNameWith :: (String -> String) -> Name -> Name
