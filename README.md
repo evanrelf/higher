@@ -1,11 +1,21 @@
 # higher
 
-Generate [higher-kinded data] (HKD) types from regular data types with Template
-Haskell.
+[Higher-kinded data][hkd] (HKD) types with less pain.
 
-[higher-kinded data]: https://reasonablypolymorphic.com/blog/higher-kinded-data/
+[hkd]: https://reasonablypolymorphic.com/blog/higher-kinded-data/
 
-Turns this:
+This library takes your regular Haskell data types and produces additional
+higher-kinded versions, along with term- and type-level conversion functions.
+
+I wanted to leverage the power of higher-kinded data as an internal
+implementation detail of my code, without burdening others with the extra type
+parameter, `Identity` wrapping (or poor type inference from the type family
+unwrapping `Identity`), and overall increase in complexity.
+
+With this library, I can work with my data in a higher-kinded fashion
+temporarily, and then convert back to regular Haskell data types when I'm done.
+
+In other words, this:
 
 ```haskell
 import Higher
@@ -18,7 +28,7 @@ data Person = Person
 $(higher ''Person)
 ```
 
-Into this:
+...turns into this:
 
 ```haskell
 import Higher
