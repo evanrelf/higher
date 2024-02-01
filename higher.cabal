@@ -48,6 +48,7 @@ library
   hs-source-dirs: src
   build-depends:
     , barbies
+    , containers
     , template-haskell
     , th-abstraction >= 0.6 && < 0.7
   exposed-modules:

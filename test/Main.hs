@@ -2,18 +2,23 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Main (main) where
 
+import Barbies.Constraints (Dict (..))
+import Data.Function ((&))
 import Data.Functor.Barbie
 import Data.Functor.Const (Const (..))
 import Data.Functor.Identity (Identity (..))
+import Data.Functor.Product (Product (..))
 import Data.Kind (Type)
 import GHC.TypeLits (KnownSymbol, Symbol)
 import Higher
@@ -116,7 +121,9 @@ higher ''TypePhantom
 
 data MyEqOrOrd a
   = Eq a => MyEq a
-  | forall b. Ord b => MyOrd b
+  -- TODO: Existentials aren't supported by the `ConstraintsB` generation code
+  -- yet
+  -- | forall b. Ord b => MyOrd b
 
 higher ''MyEqOrOrd
 
@@ -148,11 +155,21 @@ printFounderFieldIndices :: IO ()
 printFounderFieldIndices =
   btraverse_ (\(Const i) -> print i) founderFieldIndices
 
--- TODO: Need `ConstraintsB` implemented before I can assert that `a` is always
--- `String` in this one.
--- founderActions :: FoundersB (Const (IO ()))
--- founderActions =
---   bmap (\(Identity name) -> Const (putStrLn ("Hello " <> name <> "!"))) (toHKD founders)
+founderActions :: FoundersB (Const (IO ()))
+founderActions =
+  founders
+    & toHKD
+    & baddDicts
+    -- TODO: Find shorter way of specifying this constraint
+    & bmap (\(Pair (Dict :: Dict ((~) String) a) (Identity name)) ->
+        Const (putStrLn ("Hello " <> name <> "!"))
+      )
+
+printFounderNames :: IO ()
+printFounderNames = btraverse_ getConst founderActions
+
+thingy2 :: Dict ((~) String) String
+thingy2 = Dict
 
 main :: IO ()
 main = pure ()

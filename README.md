@@ -57,6 +57,14 @@ instance FunctorB PersonB where
 instance TraversableB PersonB where
   btraverse :: Applicative e => (forall a. f a -> e (g a)) -> PersonB f -> e (PersonB g)
   btraverse f (PersonB x0 x1) = pure PersonB <*> f x0 <*> f x1
+
+instance ConstraintsB PersonB where
+  type AllB c PersonB = (c Text, c Word8)
+
+  baddDicts :: AllB c PersonB => PersonB f -> PersonB (Product (Dict c) f)
+  baddDicts (PersonB x0 x1) = PersonB (Pair Dict x0) (Pair Dict x1)
+
+-- Other `barbies` type class instances coming soon
 ```
 
 You can customize how the type constructor, data constructors, and fields are

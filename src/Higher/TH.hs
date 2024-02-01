@@ -19,18 +19,23 @@ module Higher.TH
   )
 where
 
+import Barbies.Constraints (Dict (..))
 import Control.Exception (Exception, throwIO)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Functor ((<&>))
 import Data.Functor.Barbie
 import Data.Functor.Identity (Identity (..))
+import Data.Functor.Product (Product (..))
 import Data.List (foldl')
+import Data.Set (Set)
 import Data.Traversable (for)
 import Higher.Class (Higher (..))
 import Language.Haskell.TH hiding (Strict, bang)
 import Language.Haskell.TH.Datatype
 import Language.Haskell.TH.Datatype.TyVarBndr (TyVarBndrVis)
+
+import qualified Data.Set as Set
 
 data Error = Error String
   deriving stock (Show)
@@ -70,7 +75,7 @@ higherWith options loTypeName = do
     , traversableBInstanceD options loDatatypeInfo
     -- , distributiveBInstanceD options loDatatypeInfo
     -- , applicativeBInstanceD options loDatatypeInfo
-    -- , constraintsBInstanceD options loDatatypeInfo
+    , constraintsBInstanceD options loDatatypeInfo
     ]
 
 hiTypeD :: Options -> DatatypeInfo -> Q Dec
@@ -489,11 +494,69 @@ constraintsBInstanceD options loDatatypeInfo = do
 
   let allBTypeFamilyInstance :: Q Dec
       allBTypeFamilyInstance = do
-        undefined
+        cType :: Type <- VarT <$> newName "c"
+
+        let params :: Maybe [TyVarBndrUnit]
+            params = Nothing
+
+        let left :: Type
+            left = ConT ''AllB `AppT` cType `AppT` hiType
+
+        -- TODO: Either support existentials, or degrade gracefully when they
+        -- appear (e.g. don't generate a ``ConstraintsB` instance).
+        let fieldTypes :: Set Type
+            fieldTypes =
+              Set.fromList $
+                foldMap constructorFields (datatypeCons loDatatypeInfo)
+
+        let right :: Type
+            right = foldl' cons nil fieldTypes
+              where
+              nil :: Type
+              nil = TupleT (Set.size fieldTypes)
+
+              cons :: Type -> Type -> Type
+              cons f x = AppT f (AppT cType x)
+
+        pure $ TySynInstD (TySynEqn params left right)
 
   let baddDictsMethod :: Q Dec
       baddDictsMethod = do
-        undefined
+        clauses :: [Clause] <- do
+          for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
+            let loConstructorName :: Name
+                loConstructorName = constructorName loConstructorInfo
+
+            let hiConstructorName :: Name
+                hiConstructorName =
+                  mkNameWith
+                    (dataConstructorNameModifier options)
+                    loConstructorName
+
+            fieldNames :: [Name] <-
+              for (zip [0 ..] (constructorFields loConstructorInfo)) \(i, _) ->
+                newName ("x" <> show @Int i)
+
+            let patterns :: [Pat]
+                patterns = [ConP hiConstructorName [] (fmap VarP fieldNames)]
+
+            let body :: Body
+                body = NormalB (foldl' cons nil fieldNames)
+                  where
+                  nil :: Exp
+                  nil = ConE hiConstructorName
+
+                  cons :: Exp -> Name -> Exp
+                  cons e n =
+                    AppE e
+                      (ParensE (ConE 'Pair `AppE` ConE 'Dict `AppE` VarE n))
+
+            let declarations :: [Dec]
+                declarations = []
+
+            pure $ Clause patterns body declarations
+
+        pure $ FunD 'baddDicts clauses
 
   instanceD
     context
