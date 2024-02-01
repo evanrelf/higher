@@ -24,6 +24,7 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Functor ((<&>))
 import Data.Functor.Barbie
+import Data.Functor.Identity (Identity (..))
 import Data.List (foldl')
 import Data.Traversable (for)
 import Higher.Class (Higher (..))
@@ -217,8 +218,8 @@ higherInstanceD options loDatatypeInfo = do
       higherMethod method = do
         let name =
               case method of
-                ToHKD -> mkName "toHKD"
-                FromHKD -> mkName "fromHKD"
+                ToHKD -> 'toHKD
+                FromHKD -> 'fromHKD
 
         clauses <-
           for (datatypeCons loDatatypeInfo) \loConstructorInfo -> do
@@ -254,8 +255,8 @@ higherInstanceD options loDatatypeInfo = do
                   f :: Exp
                   f =
                     case method of
-                      ToHKD -> ConE (mkName "Identity")
-                      FromHKD -> VarE (mkName "runIdentity")
+                      ToHKD -> ConE 'Identity
+                      FromHKD -> VarE 'runIdentity
 
             let declarations = []
 
@@ -328,7 +329,7 @@ functorBInstanceD options loDatatypeInfo = do
 
             pure $ Clause patterns body declarations
 
-        pure $ FunD (mkName "bmap") clauses
+        pure $ FunD 'bmap clauses
 
   instanceD
     context
