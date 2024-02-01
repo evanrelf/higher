@@ -7,6 +7,10 @@
 
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
+-- TODO: Remove
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+
 module Higher.TH
   ( higher
   , higherWith
@@ -39,8 +43,6 @@ data Options = Options
     -- ^ How the higher-kinded variant's data constructors should be named.
   , fieldNameModifier :: String -> String
     -- ^ How the higher-kinded variant's fields should be named.
-  , generateHigherInstance :: Bool
-    -- ^ Whether to generate an instance of the `Higher` type class.
   }
 
 defaultOptions :: Options
@@ -50,7 +52,6 @@ defaultOptions =
     , typeParameterName = "f"
     , dataConstructorNameModifier = (<> "B")
     , fieldNameModifier = (<> "B")
-    , generateHigherInstance = True
     }
 
 higher :: Name -> Q [Dec]
@@ -60,18 +61,18 @@ higherWith :: Options -> Name -> Q [Dec]
 higherWith options loTypeName = do
   loDatatypeInfo :: DatatypeInfo <- reifyDatatype loTypeName
 
-  if generateHigherInstance options then
-    sequence
-      [ higherTypeD options loDatatypeInfo
-      , higherInstanceD options loDatatypeInfo
-      ]
-  else
-    sequence
-      [ higherTypeD options loDatatypeInfo
-      ]
+  sequence
+    [ hiTypeD options loDatatypeInfo
+    , higherInstanceD options loDatatypeInfo
+    -- , functorBInstanceD options loDatatypeInfo
+    -- , traversableBInstanceD options loDatatypeInfo
+    -- , distributiveBInstanceD options loDatatypeInfo
+    -- , applicativeBInstanceD options loDatatypeInfo
+    -- , constraintsBInstanceD options loDatatypeInfo
+    ]
 
-higherTypeD :: Options -> DatatypeInfo -> Q Dec
-higherTypeD options loDatatypeInfo = do
+hiTypeD :: Options -> DatatypeInfo -> Q Dec
+hiTypeD options loDatatypeInfo = do
   let loDatatypeVariant :: DatatypeVariant
       loDatatypeVariant = datatypeVariant loDatatypeInfo
 
@@ -322,6 +323,26 @@ higherInstanceD options loDatatypeInfo = do
 data HigherMethod
   = ToHKD
   | FromHKD
+
+functorBInstanceD :: Options -> DatatypeInfo -> Q Dec
+functorBInstanceD options loDatatypeInfo = do
+  undefined
+
+traversableBInstanceD :: Options -> DatatypeInfo -> Q Dec
+traversableBInstanceD options loDatatypeInfo = do
+  undefined
+
+distributiveBInstanceD :: Options -> DatatypeInfo -> Q Dec
+distributiveBInstanceD options loDatatypeInfo = do
+  undefined
+
+applicativeBInstanceD :: Options -> DatatypeInfo -> Q Dec
+applicativeBInstanceD options loDatatypeInfo = do
+  undefined
+
+constraintsBInstanceD :: Options -> DatatypeInfo -> Q Dec
+constraintsBInstanceD options loDatatypeInfo = do
+  undefined
 
 mkNameWith :: (String -> String) -> Name -> Name
 mkNameWith modify name = mkName (modify (nameBase name))
