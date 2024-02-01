@@ -202,17 +202,6 @@ hiTypeD options loDatatypeInfo = do
 
 higherInstanceD :: Options -> DatatypeInfo -> Q Dec
 higherInstanceD options loDatatypeInfo = do
-  -- `Foo` -> `Foo a b`
-  let applyTypeParameters :: Type -> Type
-      applyTypeParameters nil = foldl' cons nil (datatypeVars loDatatypeInfo)
-        where
-        cons :: Type -> TyVarBndrUnit -> Type
-        cons type_ = \case
-          -- `a`
-          PlainTV name () -> AppT type_ (VarT name)
-          -- `a :: k`
-          KindedTV name () kind -> AppT type_ (SigT (VarT name) kind)
-
   -- "Foo"
   let loTypeName :: Name
       loTypeName = datatypeName loDatatypeInfo
@@ -223,11 +212,11 @@ higherInstanceD options loDatatypeInfo = do
 
   -- `Foo a b`
   let loType :: Type
-      loType = applyTypeParameters (ConT loTypeName)
+      loType = applyTypeParameters loDatatypeInfo (ConT loTypeName)
 
   -- `FooB a b` (omitting `f`)
   let hiType :: Type
-      hiType = applyTypeParameters (ConT hiTypeName)
+      hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
 
   -- `(Eq a, Ord a)`
   let context :: Q Cxt
@@ -418,6 +407,17 @@ constraintsBInstanceD options loDatatypeInfo = do
     [ allBTypeFamilyInstance
     , baddDictsMethod
     ]
+
+applyTypeParameters :: DatatypeInfo -> Type -> Type
+applyTypeParameters loDatatypeInfo nil =
+  foldl' cons nil (datatypeVars loDatatypeInfo)
+  where
+  cons :: Type -> TyVarBndrUnit -> Type
+  cons type_ = \case
+    -- `a`
+    PlainTV name () -> AppT type_ (VarT name)
+    -- `a :: k`
+    KindedTV name () kind -> AppT type_ (SigT (VarT name) kind)
 
 mkNameWith :: (String -> String) -> Name -> Name
 mkNameWith modify name = mkName (modify (nameBase name))
