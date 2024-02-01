@@ -47,6 +47,7 @@ library
   import: common
   hs-source-dirs: src
   build-depends:
+    , barbies
     , template-haskell
     , th-abstraction >= 0.6 && < 0.7
   exposed-modules:

@@ -23,6 +23,7 @@ import Control.Exception (Exception, throwIO)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Functor ((<&>))
+import Data.Functor.Barbie
 import Data.List (foldl')
 import Data.Traversable (for)
 import Higher.Class (Higher (..))
@@ -303,13 +304,20 @@ data HigherMethod
 
 functorBInstanceD :: Options -> DatatypeInfo -> Q Dec
 functorBInstanceD options loDatatypeInfo = do
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
+
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
+
+  let hiType :: Type
+      hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
+
   let context :: Q Cxt
-      context = do
-        undefined
+      context = pure (datatypeContext loDatatypeInfo)
 
   let functorBInstanceType :: Q Type
-      functorBInstanceType = do
-        undefined
+      functorBInstanceType = pure $ AppT (ConT ''FunctorB) hiType
 
   let bmapMethod :: Q Dec
       bmapMethod = do
@@ -322,13 +330,20 @@ functorBInstanceD options loDatatypeInfo = do
 
 traversableBInstanceD :: Options -> DatatypeInfo -> Q Dec
 traversableBInstanceD options loDatatypeInfo = do
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
+
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
+
+  let hiType :: Type
+      hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
+
   let context :: Q Cxt
-      context = do
-        undefined
+      context = pure (datatypeContext loDatatypeInfo)
 
   let traversableBInstanceType :: Q Type
-      traversableBInstanceType = do
-        undefined
+      traversableBInstanceType = pure $ AppT (ConT ''TraversableB) hiType
 
   let btraverseMethod :: Q Dec
       btraverseMethod = do
@@ -341,13 +356,20 @@ traversableBInstanceD options loDatatypeInfo = do
 
 distributiveBInstanceD :: Options -> DatatypeInfo -> Q Dec
 distributiveBInstanceD options loDatatypeInfo = do
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
+
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
+
+  let hiType :: Type
+      hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
+
   let context :: Q Cxt
-      context = do
-        undefined
+      context = pure (datatypeContext loDatatypeInfo)
 
   let distributiveBInstanceType :: Q Type
-      distributiveBInstanceType = do
-        undefined
+      distributiveBInstanceType = pure $ AppT (ConT ''DistributiveB) hiType
 
   let bdistributeMethod :: Q Dec
       bdistributeMethod = do
@@ -360,13 +382,20 @@ distributiveBInstanceD options loDatatypeInfo = do
 
 applicativeBInstanceD :: Options -> DatatypeInfo -> Q Dec
 applicativeBInstanceD options loDatatypeInfo = do
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
+
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
+
+  let hiType :: Type
+      hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
+
   let context :: Q Cxt
-      context = do
-        undefined
+      context = pure (datatypeContext loDatatypeInfo)
 
   let applicativeBInstanceType :: Q Type
-      applicativeBInstanceType = do
-        undefined
+      applicativeBInstanceType = pure $ AppT (ConT ''ApplicativeB) hiType
 
   let bpureMethod :: Q Dec
       bpureMethod = do
@@ -385,13 +414,20 @@ applicativeBInstanceD options loDatatypeInfo = do
 
 constraintsBInstanceD :: Options -> DatatypeInfo -> Q Dec
 constraintsBInstanceD options loDatatypeInfo = do
+  let loTypeName :: Name
+      loTypeName = datatypeName loDatatypeInfo
+
+  let hiTypeName :: Name
+      hiTypeName = mkNameWith (typeConstructorNameModifier options) loTypeName
+
+  let hiType :: Type
+      hiType = applyTypeParameters loDatatypeInfo (ConT hiTypeName)
+
   let context :: Q Cxt
-      context = do
-        undefined
+      context = pure (datatypeContext loDatatypeInfo)
 
   let constraintsBInstanceType :: Q Type
-      constraintsBInstanceType = do
-        undefined
+      constraintsBInstanceType = pure $ AppT (ConT ''ConstraintsB) hiType
 
   let allBTypeFamilyInstance :: Q Dec
       allBTypeFamilyInstance = do
